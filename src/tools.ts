@@ -81,7 +81,7 @@ export type ResponseFormat = 'text' | 'content_and_artifact';
  *
  * @param client - The MCP client
  * @param tool - The MCP tool to convert
- * @param toolSchema - Tool schema (unused in simplified implementation)
+ * @param toolSchema - Tool schema (kept for backward compatibility, not used in current implementation)
  * @param responseFormat - Response format ('text' or 'content_and_artifact')
  * @returns A LangChain tool
  */
@@ -89,7 +89,7 @@ export function convertMcpToolToLangchainTool(
   client: Client,
   tool: { name: string; description?: string; inputSchema?: any },
   toolSchema?: any,
-  responseFormat: ResponseFormat = 'text'
+  responseFormat: ResponseFormat = 'content_and_artifact'
 ): StructuredToolInterface {
   // Create a minimal MCPTool class extending StructuredTool
   class MCPTool extends StructuredTool {

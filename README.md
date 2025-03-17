@@ -244,7 +244,8 @@ const toolsByServer = client.getToolsByServer();
 await client.close();
 ```
 
-> **Note:** When using configuration files, the `transport` field is optional for stdio connections. If not specified, it defaults to 'stdio'. For SSE connections, the `transport` field must be explicitly set to 'sse'.
+> [!NOTE]
+> For stdio connections, the `transport` field is optional. If not specified, it defaults to 'stdio'.
 
 ### With Authentication Headers
 
@@ -284,8 +285,6 @@ Define your server connections in a JSON file:
 }
 ```
 
-Note: For stdio connections, the `transport` field is optional. If not specified, it defaults to 'stdio'.
-
 Then load it in your code:
 
 ```typescript
@@ -324,7 +323,6 @@ const client1 = new MultiServerMCPClient(); // Automatically checks for mcp.json
 
 // Method 2: From specified config file
 const client2 = MultiServerMCPClient.fromConfigFile('./config/custom-mcp.json');
-
 ```
 
 ### Combining Multiple Configuration Sources
@@ -462,7 +460,8 @@ Below is the complete schema for the configuration file:
 }
 ```
 
-> **Note:** For stdio connections, the `transport` field is optional. If not specified, it defaults to 'stdio' when `command` and `args` are present.
+> [!NOTE]
+> For stdio connections, the `transport` field is optional. If not specified, it defaults to 'stdio' when `command` and `args` are present.
 
 ## Browser Environments
 

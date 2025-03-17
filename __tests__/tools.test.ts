@@ -1,5 +1,5 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { convertMcpToolToLangchainTool, loadMcpTools, ResponseFormat } from '../src/tools.js';
+import { convertMcpToolToLangchainTool, loadMcpTools } from '../src/tools.js';
 import { z } from 'zod';
 
 // Create a mock client

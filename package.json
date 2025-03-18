@@ -43,8 +43,7 @@
     "winston": "^3.17.0"
   },
   "peerDependencies": {
-    "@langchain/core": "^0.3.40",
-    "@langchain/langgraph": "^0.2.54"
+    "@langchain/core": "^0.3.40"
   },
   "optionalDependencies": {
     "extended-eventsource": "^1.x"

@@ -83,5 +83,11 @@
   ],
   "directories": {
     "example": "examples"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/src/index.js"
+    },
+    "./package.json": "./package.json"
   }
 }

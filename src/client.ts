@@ -9,7 +9,7 @@ import debug from 'debug';
 
 const {
   default: { name: packageName },
-} = await import('../package.json');
+} = await import('../package.json', { assert: { type: 'json' } });
 const moduleName = 'client';
 
 const debugLog = debug(`${packageName}:${moduleName}`);

@@ -24,7 +24,7 @@ import { z } from 'zod';
 
 const {
   default: { name: packageName },
-} = await import('../package.json');
+} = await import('../package.json', { assert: { type: 'json' } });
 const moduleName = 'tools';
 
 const debugLog = debug(`${packageName}:${moduleName}`);

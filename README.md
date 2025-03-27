@@ -513,7 +513,70 @@ To output debug logs only from the `tools` module:
 DEBUG='@langchain/mcp-adapters:tools'
 ```
 
+## Examples
 
+The following scripts can be used to run various examples provided in this repository:
+
+- **Weather Server**:  
+  ```bash
+  yarn start:weather
+  ```
+  Starts the weather server using Python.
+
+- **Math Server**:  
+  ```bash
+  yarn start:math
+  ```
+  Starts the math server using Python.
+
+- **Filesystem LangGraph Example**:  
+  ```bash
+  yarn start:filesystem_langgraph_example
+  ```
+  Runs the filesystem LangGraph example.
+
+- **Config LangGraph Test**:  
+  ```bash
+  yarn start:config_langgraph_test
+  ```
+  Runs the configuration LangGraph test.
+
+- **Firecrawl Custom Config Example**:  
+  ```bash
+  yarn start:firecrawl_custom_config_example
+  ```
+  Runs the Firecrawl example with a custom configuration.
+
+- **Firecrawl Default Config Example**:  
+  ```bash
+  yarn start:firecrawl_default_config_example
+  ```
+  Runs the Firecrawl example with the default configuration.
+
+- **Firecrawl Enhanced Config Example**:  
+  ```bash
+  yarn start:firecrawl_enhanced_config_example
+  ```
+  Runs the Firecrawl example with enhanced configuration.
+
+- **Firecrawl Mixed Loading Example**:  
+  ```bash
+  yarn start:firecrawl_mixed_loading_example
+  ```
+  Runs the Firecrawl example with mixed loading.
+
+- **LangGraph Example**:  
+  ```bash
+  yarn start:langgraph_example
+  ```
+  Runs the LangGraph example.
+
+- **MCP Over Docker Example**:  
+  ```bash
+  yarn start:mcp_over_docker_example
+  ```
+  Runs the MCP over Docker example.
+  
 ## License
 
 MIT

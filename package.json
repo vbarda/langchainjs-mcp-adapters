@@ -28,7 +28,17 @@
     "format:check": "prettier --config .prettierrc --check \"src\" \"examples/**/*.ts\"",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "start:weather": "./examples/start-python.sh ./examples/weather_server.py",
+    "start:math": "./examples/start-python.sh ./examples/math.py",
+    "start:filesystem_langgraph_example": "npx bun run examples/filesystem_langgraph_example.ts",
+    "start:config_langgraph_test": "npx bun run examples/config_langgraph_test.ts",
+    "start:firecrawl_custom_config_example": "npx bun run examples/firecrawl_custom_config_example.ts",
+    "start:firecrawl_default_config_example": "npx bun run examples/firecrawl_default_config_example.ts",
+    "start:firecrawl_enhanced_config_example": "npx bun run examples/firecrawl_enhanced_config_example.ts",
+    "start:firecrawl_mixed_loading_example": "npx bun run examples/firecrawl_mixed_loading_example.ts",
+    "start:langgraph_example": "npx bun run examples/langgraph_example.ts",
+    "start:mcp_over_docker_example": "npx bun run examples/mcp_over_docker_example.ts"
   },
   "lint-staged": {
     "*.{js,ts}": [

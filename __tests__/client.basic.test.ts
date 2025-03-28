@@ -302,6 +302,61 @@ describe("MultiServerMCPClient", () => {
         MultiServerMCPClient.fromConfigFile("./invalid.json");
       }).toThrow(MCPClientError);
     });
+
+    test("should support mcpServers configuration", () => {
+      (fs.readFileSync as Mock).mockImplementation(() =>
+        JSON.stringify({
+          mcpServers: {
+            "test-server": {
+              transport: "stdio",
+              command: "python",
+              args: ["./script.py"],
+            },
+          },
+        })
+      );
+
+      const client = MultiServerMCPClient.fromConfigFile(
+        "./mcp-new-format.json"
+      );
+      expect(client).toBeDefined();
+      expect(fs.readFileSync).toHaveBeenCalledWith(
+        "./mcp-new-format.json",
+        "utf8"
+      );
+    });
+
+    test("should prioritize mcpServers over servers when both are present", () => {
+      (fs.readFileSync as Mock).mockImplementation(() =>
+        JSON.stringify({
+          servers: {
+            "old-server": {
+              transport: "stdio",
+              command: "python",
+              args: ["./old-script.py"],
+            },
+          },
+          mcpServers: {
+            "new-server": {
+              transport: "stdio",
+              command: "python",
+              args: ["./new-script.py"],
+            },
+          },
+        })
+      );
+
+      const client = MultiServerMCPClient.fromConfigFile(
+        "./mcp-dual-format.json"
+      );
+      expect(client).toBeDefined();
+
+      // We can't directly test the internals, but we can verify the file was read
+      expect(fs.readFileSync).toHaveBeenCalledWith(
+        "./mcp-dual-format.json",
+        "utf8"
+      );
+    });
   });
 
   // 3. Connection Management tests

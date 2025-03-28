@@ -155,26 +155,36 @@ export class MultiServerMCPClient {
     const configData = fs.readFileSync(configPath, "utf8");
     const config = JSON.parse(configData);
 
-    // Validate that config has a servers property
-    if (!config || typeof config !== "object" || !("servers" in config)) {
+    // Validate that config has either servers or mcpServers property
+    if (
+      !config ||
+      typeof config !== "object" ||
+      (!("servers" in config) && !("mcpServers" in config))
+    ) {
       getDebugLog()(
-        `ERROR: Invalid MCP configuration from ${configPath}: missing 'servers' property`
+        `ERROR: Invalid MCP configuration from ${configPath}: missing 'servers' or 'mcpServers' property`
       );
       throw new MCPClientError(
-        `Invalid MCP configuration: missing 'servers' property`
+        `Invalid MCP configuration: missing 'servers' or 'mcpServers' property`
       );
     }
+
+    // Use mcpServers if available, otherwise use servers
+    const serversConfig = config.mcpServers ?? config.servers;
 
     // Process environment variables in the configuration
     MultiServerMCPClient.processEnvVarsInConfig(
       Object.fromEntries(
-        Object.entries(
-          config.servers as Record<string, StdioConnection>
-        ).filter(([_, value]) => value.transport === "stdio")
+        Object.entries(serversConfig as Record<string, StdioConnection>).filter(
+          ([_, value]) => value.transport === "stdio"
+        )
       )
     );
 
-    return config;
+    // Return the config with the servers property set from either source
+    return {
+      servers: serversConfig,
+    };
   }
 
   /**

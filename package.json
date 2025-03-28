@@ -24,8 +24,8 @@
     "lint:eslint": "NODE_OPTIONS=--max-old-space-size=4096 eslint --cache --ext .ts,.js src/ examples/",
     "lint:fix": "yarn lint:eslint --fix && yarn lint:dpdm",
     "prepack": "yarn build",
-    "format": "prettier --config .prettierrc --write \"src/**/*.ts\" \"examples/**/*.ts\"",
-    "format:check": "prettier --config .prettierrc --check \"src\" \"examples/**/*.ts\"",
+    "format": "prettier --config .prettierrc --write \"src/**/*.ts\" \"examples/**/*.ts\" \"__tests__/**/*.ts\"",
+    "format:check": "prettier --config .prettierrc --check \"src\" \"examples/**/*.ts\" \"__tests__/**/*.ts\"",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"

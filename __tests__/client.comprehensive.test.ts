@@ -1,4 +1,14 @@
-import { vi, describe, test, expect, beforeEach, afterEach } from "vitest";
+/* eslint-disable no-template-curly-in-string */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+  vi,
+  describe,
+  test,
+  expect,
+  beforeEach,
+  afterEach,
+  Mock,
+} from "vitest";
 
 // Mock fs module before imports
 vi.mock("fs", () => {
@@ -59,80 +69,68 @@ vi.mock("../src/logger.js", () => {
 });
 
 // Set up mocks for external modules
-vi.mock(
-  "@modelcontextprotocol/sdk/client/index.js",
-  () => {
-    return {
-      Client: vi.fn().mockImplementation(() => ({
-        connect: vi.fn().mockReturnValue(Promise.resolve()),
-        listTools: vi.fn().mockReturnValue(
-          Promise.resolve({
-            tools: [
-              {
-                name: "tool1",
-                description: "Test tool 1",
-                inputSchema: { type: "object", properties: {} },
-              },
-              {
-                name: "tool2",
-                description: "Test tool 2",
-                inputSchema: { type: "object", properties: {} },
-              },
-            ],
-          })
+vi.mock("@modelcontextprotocol/sdk/client/index.js", () => {
+  return {
+    Client: vi.fn().mockImplementation(() => ({
+      connect: vi.fn().mockReturnValue(Promise.resolve()),
+      listTools: vi.fn().mockReturnValue(
+        Promise.resolve({
+          tools: [
+            {
+              name: "tool1",
+              description: "Test tool 1",
+              inputSchema: { type: "object", properties: {} },
+            },
+            {
+              name: "tool2",
+              description: "Test tool 2",
+              inputSchema: { type: "object", properties: {} },
+            },
+          ],
+        })
+      ),
+      callTool: vi
+        .fn()
+        .mockReturnValue(
+          Promise.resolve({ content: [{ type: "text", text: "result" }] })
         ),
-        callTool: vi
-          .fn()
-          .mockReturnValue(
-            Promise.resolve({ content: [{ type: "text", text: "result" }] })
-          ),
+      close: vi.fn().mockReturnValue(Promise.resolve()),
+      tools: [], // Add the tools property
+    })),
+  };
+});
+
+vi.mock("@modelcontextprotocol/sdk/client/stdio.js", () => {
+  // Using the OnCloseHandler type defined at the top level
+  return {
+    StdioClientTransport: vi.fn().mockImplementation((config) => {
+      const transport = {
+        connect: vi.fn().mockReturnValue(Promise.resolve()),
+        send: vi.fn().mockReturnValue(Promise.resolve()),
         close: vi.fn().mockReturnValue(Promise.resolve()),
-        tools: [], // Add the tools property
-      })),
-    };
-  },
-  { virtual: true }
-);
+        onclose: null as OnCloseHandler | null,
+        config,
+      };
+      return transport;
+    }),
+  };
+});
 
-vi.mock(
-  "@modelcontextprotocol/sdk/client/stdio.js",
-  () => {
-    // Using the OnCloseHandler type defined at the top level
-    return {
-      StdioClientTransport: vi.fn().mockImplementation((config) => {
-        const transport = {
-          connect: vi.fn().mockReturnValue(Promise.resolve()),
-          send: vi.fn().mockReturnValue(Promise.resolve()),
-          close: vi.fn().mockReturnValue(Promise.resolve()),
-          onclose: null as OnCloseHandler | null,
-          config,
-        };
-        return transport;
-      }),
-    };
-  },
-  { virtual: true }
-);
-
-vi.mock(
-  "@modelcontextprotocol/sdk/client/sse.js",
-  () => {
-    // Using the OnCloseHandler type defined at the top level
-    return {
-      SSEClientTransport: vi.fn().mockImplementation((config) => {
-        const transport = {
-          connect: vi.fn().mockReturnValue(Promise.resolve()),
-          send: vi.fn().mockReturnValue(Promise.resolve()),
-          close: vi.fn().mockReturnValue(Promise.resolve()),
-          onclose: null as OnCloseHandler | null,
-          config,
-        };
-        return transport;
-      }),
-    };
-  },
-  { virtual: true }
-);
+vi.mock("@modelcontextprotocol/sdk/client/sse.js", () => {
+  // Using the OnCloseHandler type defined at the top level
+  return {
+    SSEClientTransport: vi.fn().mockImplementation((config) => {
+      const transport = {
+        connect: vi.fn().mockReturnValue(Promise.resolve()),
+        send: vi.fn().mockReturnValue(Promise.resolve()),
+        close: vi.fn().mockReturnValue(Promise.resolve()),
+        onclose: null as OnCloseHandler | null,
+        config,
+      };
+      return transport;
+    }),
+  };
+});
 
 // Define the onclose handler type once at the top level
 type OnCloseHandler = () => void;
@@ -217,7 +215,7 @@ beforeEach(() => {
   });
 
   // Reset the mock implementations for the imported modules
-  (Client as vi.Mock).mockImplementation(() => ({
+  (Client as Mock).mockImplementation(() => ({
     connect: mockClientMethods.connect,
     listTools: mockClientMethods.listTools,
     callTool: mockClientMethods.callTool,
@@ -225,7 +223,7 @@ beforeEach(() => {
     tools: [],
   }));
 
-  (StdioClientTransport as vi.Mock).mockImplementation((config) => {
+  (StdioClientTransport as Mock).mockImplementation((config) => {
     const transport = {
       connect: mockStdioMethods.connect,
       send: mockStdioMethods.send,
@@ -239,7 +237,7 @@ beforeEach(() => {
     return transport;
   });
 
-  (SSEClientTransport as vi.Mock).mockImplementation((config) => {
+  (SSEClientTransport as Mock).mockImplementation((config) => {
     const transport = {
       connect: mockSSEMethods.connect,
       send: mockSSEMethods.send,
@@ -316,6 +314,7 @@ describe("MultiServerMCPClient", () => {
 
       // Should throw error during initialization
       expect(() => {
+        // eslint-disable-next-line no-new
         new MultiServerMCPClient(config);
       }).toThrow(MCPClientError);
     });
@@ -335,7 +334,7 @@ describe("MultiServerMCPClient", () => {
   describe("Configuration Loading", () => {
     test("should load config from a valid file", async () => {
       // Mock fs.readFileSync to return valid JSON
-      (fs.readFileSync as vi.Mock).mockReturnValueOnce(
+      (fs.readFileSync as Mock).mockReturnValueOnce(
         JSON.stringify({
           servers: {
             "test-server": {
@@ -353,7 +352,7 @@ describe("MultiServerMCPClient", () => {
     });
 
     test("should throw error for nonexistent config file", () => {
-      (fs.existsSync as vi.Mock).mockReturnValueOnce(false);
+      (fs.existsSync as Mock).mockReturnValueOnce(false);
 
       expect(() => {
         MultiServerMCPClient.fromConfigFile("./nonexistent.json");
@@ -361,7 +360,7 @@ describe("MultiServerMCPClient", () => {
     });
 
     test("should throw error for invalid JSON in config file", () => {
-      (fs.readFileSync as vi.Mock).mockReturnValueOnce("invalid json");
+      (fs.readFileSync as Mock).mockReturnValueOnce("invalid json");
 
       expect(() => {
         MultiServerMCPClient.fromConfigFile("./invalid.json");
@@ -370,7 +369,7 @@ describe("MultiServerMCPClient", () => {
 
     test("should throw error for invalid config structure", () => {
       // Mock readFileSync to return a config without the required 'servers' property
-      (fs.readFileSync as vi.Mock).mockReturnValueOnce(
+      (fs.readFileSync as Mock).mockReturnValueOnce(
         JSON.stringify({
           notServers: {}, // This missing 'servers' property
         })
@@ -391,7 +390,7 @@ describe("MultiServerMCPClient", () => {
     });
 
     test("should throw error for file system errors", () => {
-      (fs.readFileSync as vi.Mock).mockImplementationOnce(() => {
+      (fs.readFileSync as Mock).mockImplementationOnce(() => {
         throw new Error("File system error");
       });
 
@@ -402,7 +401,7 @@ describe("MultiServerMCPClient", () => {
 
     test("should support mcpServers configuration format", () => {
       // Mock readFileSync to return a config with mcpServers instead of servers
-      (fs.readFileSync as vi.Mock).mockReturnValueOnce(
+      (fs.readFileSync as Mock).mockReturnValueOnce(
         JSON.stringify({
           mcpServers: {
             "test-server": {
@@ -429,7 +428,7 @@ describe("MultiServerMCPClient", () => {
 
     test("should prioritize mcpServers over servers when both exist", () => {
       // Mock readFileSync to return a config with both mcpServers and servers
-      (fs.readFileSync as vi.Mock).mockReturnValueOnce(
+      (fs.readFileSync as Mock).mockReturnValueOnce(
         JSON.stringify({
           servers: {
             "old-server": {
@@ -480,7 +479,7 @@ describe("MultiServerMCPClient", () => {
       process.env = { ...originalEnv, API_KEY: "test-api-key" };
 
       // For servers format
-      (fs.readFileSync as vi.Mock).mockReturnValueOnce(
+      (fs.readFileSync as Mock).mockReturnValueOnce(
         JSON.stringify({
           servers: {
             "test-server": {
@@ -501,7 +500,7 @@ describe("MultiServerMCPClient", () => {
       expect(client).toBeDefined();
 
       // For mcpServers format
-      (fs.readFileSync as vi.Mock).mockReturnValueOnce(
+      (fs.readFileSync as Mock).mockReturnValueOnce(
         JSON.stringify({
           mcpServers: {
             "test-server": {
@@ -539,7 +538,7 @@ describe("MultiServerMCPClient", () => {
       vi.clearAllMocks();
 
       // Set up specific implementation for the StdioClientTransport mock
-      (StdioClientTransport as vi.Mock).mockImplementationOnce((options) => {
+      (StdioClientTransport as Mock).mockImplementationOnce((options) => {
         return {
           connect: mockStdioMethods.connect,
           send: mockStdioMethods.send,
@@ -577,7 +576,7 @@ describe("MultiServerMCPClient", () => {
       vi.clearAllMocks();
 
       // Set up specific implementation for the SSEClientTransport mock
-      (SSEClientTransport as vi.Mock).mockImplementationOnce((url, options) => {
+      (SSEClientTransport as Mock).mockImplementationOnce((url, options) => {
         return {
           connect: mockSSEMethods.connect,
           send: mockSSEMethods.send,
@@ -653,14 +652,16 @@ describe("MultiServerMCPClient", () => {
       await client.initializeConnections();
 
       // Clear previous calls
-      (StdioClientTransport as vi.Mock).mockClear();
+      (StdioClientTransport as Mock).mockClear();
       mockClientMethods.connect.mockClear();
 
       // Trigger onclose handler
       mockStdioMethods.triggerOnclose();
 
       // Wait for reconnection delay
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 150);
+      });
 
       // Should attempt to create a new transport
       expect(StdioClientTransport).toHaveBeenCalledTimes(1);
@@ -684,14 +685,16 @@ describe("MultiServerMCPClient", () => {
       await client.initializeConnections();
 
       // Clear previous calls
-      (SSEClientTransport as vi.Mock).mockClear();
+      (SSEClientTransport as Mock).mockClear();
       mockClientMethods.connect.mockClear();
 
       // Trigger onclose handler
       mockSSEMethods.triggerOnclose();
 
       // Wait for reconnection delay
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 150);
+      });
 
       // Should attempt to create a new transport
       expect(SSEClientTransport).toHaveBeenCalledTimes(1);
@@ -705,7 +708,7 @@ describe("MultiServerMCPClient", () => {
       const client = new MultiServerMCPClient();
 
       // Clear previous mock invocations
-      (StdioClientTransport as vi.Mock).mockClear();
+      (StdioClientTransport as Mock).mockClear();
 
       // Connect with reconnection enabled
       await client.connectToServerViaStdio(
@@ -724,7 +727,9 @@ describe("MultiServerMCPClient", () => {
       mockStdioMethods.triggerOnclose();
 
       // Wait for reconnection attempts to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100);
+      });
 
       // Verify the number of attempts
       // StdioClientTransport is called once for initial connection
@@ -744,13 +749,15 @@ describe("MultiServerMCPClient", () => {
       await client.initializeConnections();
 
       // Clear previous calls
-      (StdioClientTransport as vi.Mock).mockClear();
+      (StdioClientTransport as Mock).mockClear();
 
       // Trigger onclose handler
       mockStdioMethods.triggerOnclose();
 
       // Wait some time
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 50);
+      });
 
       // Should not attempt to create a new transport
       expect(StdioClientTransport).not.toHaveBeenCalled();
@@ -950,11 +957,13 @@ describe("MultiServerMCPClient", () => {
       expect(StdioClientTransport).toHaveBeenCalled();
 
       // Simulate connection close to test restart
-      (StdioClientTransport as vi.Mock).mockClear();
+      (StdioClientTransport as Mock).mockClear();
       mockStdioMethods.triggerOnclose();
 
       // Wait for reconnection
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 150);
+      });
 
       // Should have attempted reconnection
       expect(StdioClientTransport).toHaveBeenCalledTimes(1);
@@ -962,7 +971,7 @@ describe("MultiServerMCPClient", () => {
 
     test("should connect to an SSE server correctly", async () => {
       // Clear previous mock invocations
-      (SSEClientTransport as vi.Mock).mockClear();
+      (SSEClientTransport as Mock).mockClear();
 
       const client = new MultiServerMCPClient();
       await client.connectToServerViaSSE(
@@ -978,7 +987,7 @@ describe("MultiServerMCPClient", () => {
 
     test("should connect with headers", async () => {
       // Clear previous mock invocations
-      (SSEClientTransport as vi.Mock).mockClear();
+      (SSEClientTransport as Mock).mockClear();
 
       const client = new MultiServerMCPClient();
       const headers = { Authorization: "Bearer token" };
@@ -996,7 +1005,7 @@ describe("MultiServerMCPClient", () => {
 
     test("should connect with useNodeEventSource option", async () => {
       // Clear previous mock invocations
-      (SSEClientTransport as vi.Mock).mockClear();
+      (SSEClientTransport as Mock).mockClear();
 
       const client = new MultiServerMCPClient();
       await client.connectToServerViaSSE(
@@ -1027,11 +1036,13 @@ describe("MultiServerMCPClient", () => {
       expect(SSEClientTransport).toHaveBeenCalled();
 
       // Simulate connection close to test reconnect
-      (SSEClientTransport as vi.Mock).mockClear();
+      (SSEClientTransport as Mock).mockClear();
       mockSSEMethods.triggerOnclose();
 
       // Wait for reconnection
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 150);
+      });
 
       // Should have attempted reconnection
       expect(SSEClientTransport).toHaveBeenCalledTimes(1);
@@ -1047,7 +1058,7 @@ describe("MultiServerMCPClient", () => {
 
       // Clear mock history
       mockStdioMethods.close.mockClear();
-      (StdioClientTransport as vi.Mock).mockClear();
+      (StdioClientTransport as Mock).mockClear();
 
       // Connect again with same name (should close previous)
       await client.connectToServerViaStdio("test-server", "node", [
@@ -1071,14 +1082,14 @@ describe("MultiServerMCPClient", () => {
       const client = new MultiServerMCPClient();
       // Get a client for a non-existent server (should be undefined)
       const serverClient = client.getClient("non-existent");
-      // Cast to any to avoid TypeScript error
+      // Cast to unknown to avoid TypeScript error
       const result = serverClient ? (serverClient as any).tools : [];
       expect(result).toEqual([]);
     });
 
     test("should throw on transport creation errors", async () => {
       // Force an error when creating transport
-      (StdioClientTransport as vi.Mock).mockImplementationOnce(() => {
+      (StdioClientTransport as Mock).mockImplementationOnce(() => {
         throw new Error("Transport creation failed");
       });
 

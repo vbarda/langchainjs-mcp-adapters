@@ -515,6 +515,27 @@ DEBUG='@langchain/mcp-adapters:tools'
 
 ## Examples
 
+To see available examples, run:
+
+```bash
+yarn run
+```
+
+Alternatively, here are some common examples:
+
+| Example                           | Command                                    |
+|-----------------------------------|--------------------------------------------|
+| Weather Server                    | yarn start:weather                         |
+| Math Server                       | yarn start:math                            |
+| Filesystem LangGraph Example      | yarn start:filesystem_langgraph_example    |
+| Config LangGraph Test             | yarn start:config_langgraph_test           |
+| Firecrawl Custom Config Example   | yarn start:firecrawl_custom_config_example |
+| Firecrawl Default Config Example  | yarn start:firecrawl_default_config_example|
+| Firecrawl Enhanced Config Example | yarn start:firecrawl_enhanced_config_example|
+| Firecrawl Mixed Loading Example   | yarn start:firecrawl_mixed_loading_example |
+| LangGraph Example                 | yarn start:langgraph_example               |
+| MCP Over Docker Example           | yarn start:mcp_over_docker_example         |
+
 The following scripts can be used to run various examples provided in this repository:
 
 - **Weather Server**:  

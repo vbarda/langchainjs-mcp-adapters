@@ -517,7 +517,7 @@ __metadata:
     "@langchain/langgraph": ^0.2.62
     "@langchain/openai": ^0.5.2
     "@langchain/scripts": ^0.1.3
-    "@modelcontextprotocol/sdk": ^1.7.0
+    "@modelcontextprotocol/sdk": ^1.9.0
     "@tsconfig/recommended": ^1.0.8
     "@types/debug": ^4.1.12
     "@types/node": ^22.13.10
@@ -592,9 +592,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:^1.7.0":
-  version: 1.8.0
-  resolution: "@modelcontextprotocol/sdk@npm:1.8.0"
+"@modelcontextprotocol/sdk@npm:^1.9.0":
+  version: 1.9.0
+  resolution: "@modelcontextprotocol/sdk@npm:1.9.0"
   dependencies:
     content-type: ^1.0.5
     cors: ^2.8.5
@@ -602,11 +602,11 @@ __metadata:
     eventsource: ^3.0.2
     express: ^5.0.1
     express-rate-limit: ^7.5.0
-    pkce-challenge: ^4.1.0
+    pkce-challenge: ^5.0.0
     raw-body: ^3.0.0
     zod: ^3.23.8
     zod-to-json-schema: ^3.24.1
-  checksum: 6b7d861419528a130d369b875e01788c64610c23113c0a1ce20416d62f76646bccade62fbdb1cb169dd384718ee57e468b082de9d17f08449f8f281ead977b33
+  checksum: 4324c3f545b70af3de1b436085cbefa61306e6c18612e4242137140b703b217bdbe03b2bf30e8440efda9f20c31ba245f7935265c120d0f8fcd04ace54db4690
   languageName: node
   linkType: hard
 
@@ -6127,10 +6127,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pkce-challenge@npm:^4.1.0":
-  version: 4.1.0
-  resolution: "pkce-challenge@npm:4.1.0"
-  checksum: b85c50cefe3d9586ed77f5fde0c0832717c8cb3c88ab4470961306e78d84522a0f040a684d74907bd3b0c3c259f0aafbb6ff9f1f7c39bbad1ca180ac3750adb0
+"pkce-challenge@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "pkce-challenge@npm:5.0.0"
+  checksum: b5cc239f67ed525b49a23a86fdb8f49e3cdb9fd8f5e8612a15f35b553a18e5a43c99db474ffc6232e084c8328d4f2da51557e51ee4e7f8be42f710215df36f3f
   languageName: node
   linkType: hard
 

@@ -613,7 +613,6 @@ export class MultiServerMCPClient {
 
       // For Extended EventSource, create the SSE transport
       return new SSEClientTransport(new URL(url), {
-        // Pass empty options for test compatibility
         eventSourceInit: {},
         requestInit: { headers },
       });

@@ -615,7 +615,7 @@ export class MultiServerMCPClient {
       return new SSEClientTransport(new URL(url), {
         // Pass empty options for test compatibility
         eventSourceInit: {},
-        requestInit: {},
+        requestInit: { headers },
       });
     } catch (extendedError) {
       // Fall back to standard eventsource if extended-eventsource is not available

@@ -57,6 +57,10 @@ async function runExample() {
         command: "npx",
         args: ["-y", "@modelcontextprotocol/server-everything"],
       },
+      streamable_http: {
+        transport: "streamable",
+        url: "http://0.0.0.0/mcp",
+      }
     });
 
     // Get the tools (flattened array is the default now)
@@ -157,10 +161,9 @@ async function runExample() {
       result.messages.forEach((msg: BaseMessage, i: number) => {
         const msgType = "type" in msg ? msg.type : "unknown";
         console.log(
-          `[${i}] ${msgType}: ${
-            typeof msg.content === "string"
-              ? msg.content
-              : JSON.stringify(msg.content)
+          `[${i}] ${msgType}: ${typeof msg.content === "string"
+            ? msg.content
+            : JSON.stringify(msg.content)
           }`
         );
       });

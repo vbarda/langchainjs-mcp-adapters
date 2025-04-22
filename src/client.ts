@@ -154,11 +154,12 @@ export function createSseConnectionSchema() {
  * Create schema for Streamable HTTP connection
  */
 export function createStreamableHTTPConnectionSchema() {
-  return z.object({
-    transport: z.literal('streamable').optional(),
-    url: z.string().url()
-  })
-  .describe("Configuration for Streamable HTTP transport connection");
+  return z
+    .object({
+      transport: z.literal("streamable").optional(),
+      url: z.string().url(),
+    })
+    .describe("Configuration for Streamable HTTP transport connection");
 }
 
 /**
@@ -166,7 +167,11 @@ export function createStreamableHTTPConnectionSchema() {
  */
 export function createConnectionSchema() {
   return z
-    .union([createStdioConnectionSchema(), createSseConnectionSchema(), createStreamableHTTPConnectionSchema()])
+    .union([
+      createStdioConnectionSchema(),
+      createSseConnectionSchema(),
+      createStreamableHTTPConnectionSchema(),
+    ])
     .describe("Configuration for a single MCP server");
 }
 
@@ -269,7 +274,9 @@ function isSSEConnection(connection: Connection): connection is SSEConnection {
   return false;
 }
 
-function isStreamableHTTPConnection(connection: Connection): connection is StreamableHTTPConnection {
+function isStreamableHTTPConnection(
+  connection: Connection
+): connection is StreamableHTTPConnection {
   if ("transport" in connection && connection.transport === "streamable") {
     return true;
   }
@@ -435,9 +442,7 @@ export class MultiServerMCPClient {
       `DEBUG: Creating streamable HTTP transport for server "${serverName}" with URL: ${url}`
     );
 
-    const transport = new StreamableHTTPClientTransport(
-      new URL(url)
-    );
+    const transport = new StreamableHTTPClientTransport(new URL(url));
 
     this._transportInstances[serverName] = transport;
 
@@ -469,7 +474,6 @@ export class MultiServerMCPClient {
     // Load tools for this server
     await this._loadToolsForServer(serverName, client);
   }
-
 
   /**
    * Initialize a stdio connection

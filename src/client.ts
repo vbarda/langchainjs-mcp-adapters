@@ -151,45 +151,12 @@ export function createSseConnectionSchema() {
 }
 
 /**
- * Create schema for Streamable HTTP transport reconnection configuration
- */
-export function createStreamableHTTPReconnectSchema() {
-  return z
-    .object({
-      /**
-       * Whether to automatically reconnect if the connection is lost
-       */
-      enabled: z
-        .boolean()
-        .describe(
-          "Whether to automatically reconnect if the connection is lost"
-        )
-        .optional(),
-      /**
-       * Maximum number of reconnection attempts
-       */
-      maxAttempts: z
-        .number()
-        .describe("The maximum number of reconnection attempts")
-        .optional(),
-      /**
-       * Delay in milliseconds between reconnection attempts
-       */
-      delayMs: z
-        .number()
-        .describe("The delay in milliseconds between reconnection attempts")
-        .optional(),
-    })
-    .describe("Configuration for Streamable HTTP transport reconnection");
-}
-
-/**
  * Create schema for Streamable HTTP connection
  */
 export function createStreamableHTTPConnectionSchema() {
   return z.object({
     transport: z.literal('streamable').optional(),
-    url: z.string()
+    url: z.string().url()
   })
   .describe("Configuration for Streamable HTTP transport connection");
 }
@@ -342,8 +309,7 @@ export class MultiServerMCPClient {
     let parsedServerConfig: ClientConfig;
 
     const configSchema = createClientConfigSchema();
-    console.log(configSchema)
-    console.log(config)
+
     if ("mcpServers" in config) {
       parsedServerConfig = configSchema.parse(config);
     } else {

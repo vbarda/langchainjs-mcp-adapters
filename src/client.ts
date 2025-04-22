@@ -1,6 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { StructuredToolInterface } from "@langchain/core/tools";
 import debug from "debug";
 import { z } from "zod";
@@ -150,11 +151,55 @@ export function createSseConnectionSchema() {
 }
 
 /**
+ * Create schema for Streamable HTTP transport reconnection configuration
+ */
+export function createStreamableHTTPReconnectSchema() {
+  return z
+    .object({
+      /**
+       * Whether to automatically reconnect if the connection is lost
+       */
+      enabled: z
+        .boolean()
+        .describe(
+          "Whether to automatically reconnect if the connection is lost"
+        )
+        .optional(),
+      /**
+       * Maximum number of reconnection attempts
+       */
+      maxAttempts: z
+        .number()
+        .describe("The maximum number of reconnection attempts")
+        .optional(),
+      /**
+       * Delay in milliseconds between reconnection attempts
+       */
+      delayMs: z
+        .number()
+        .describe("The delay in milliseconds between reconnection attempts")
+        .optional(),
+    })
+    .describe("Configuration for Streamable HTTP transport reconnection");
+}
+
+/**
+ * Create schema for Streamable HTTP connection
+ */
+export function createStreamableHTTPConnectionSchema() {
+  return z.object({
+    transport: z.literal('streamable').optional(),
+    url: z.string()
+  })
+  .describe("Configuration for Streamable HTTP transport connection");
+}
+
+/**
  * Create combined schema for all transport connection types
  */
 export function createConnectionSchema() {
   return z
-    .union([createStdioConnectionSchema(), createSseConnectionSchema()])
+    .union([createStdioConnectionSchema(), createSseConnectionSchema(), createStreamableHTTPConnectionSchema()])
     .describe("Configuration for a single MCP server");
 }
 
@@ -198,6 +243,13 @@ export type StdioConnection = z.infer<
  */
 export type SSEConnection = z.infer<
   ReturnType<typeof createSseConnectionSchema>
+>;
+
+/**
+ * Configuration for Streamable HTTP transport connection
+ */
+export type StreamableHTTPConnection = z.infer<
+  ReturnType<typeof createStreamableHTTPConnectionSchema>
 >;
 
 /**
@@ -247,7 +299,15 @@ function isSSEConnection(connection: Connection): connection is SSEConnection {
     return true;
   }
 
-  if ("url" in connection && typeof connection.url === "string") {
+  return false;
+}
+
+function isStreamableHTTPConnection(connection: Connection): connection is StreamableHTTPConnection {
+  if ("transport" in connection && connection.transport === "streamable") {
+    return true;
+  }
+
+  if ("type" in connection && connection.type === "streamable") {
     return true;
   }
 
@@ -270,7 +330,7 @@ export class MultiServerMCPClient {
 
   private _transportInstances: Record<
     string,
-    StdioClientTransport | SSEClientTransport
+    StdioClientTransport | SSEClientTransport | StreamableHTTPClientTransport
   > = {};
 
   /**
@@ -282,6 +342,8 @@ export class MultiServerMCPClient {
     let parsedServerConfig: ClientConfig;
 
     const configSchema = createClientConfigSchema();
+    console.log(configSchema)
+    console.log(config)
     if ("mcpServers" in config) {
       parsedServerConfig = configSchema.parse(config);
     } else {
@@ -335,6 +397,8 @@ export class MultiServerMCPClient {
         await this._initializeStdioConnection(serverName, connection);
       } else if (isSSEConnection(connection)) {
         await this._initializeSSEConnection(serverName, connection);
+      } else if (isStreamableHTTPConnection(connection)) {
+        await this._initializeStreamableHTTPConnection(serverName, connection);
       } else {
         // This should never happen due to the validation in the constructor
         throw new MCPClientError(
@@ -394,6 +458,52 @@ export class MultiServerMCPClient {
 
     getDebugLog()(`INFO: All MCP connections closed`);
   }
+
+  private async _initializeStreamableHTTPConnection(
+    serverName: string,
+    connection: StreamableHTTPConnection
+  ): Promise<void> {
+    const { url } = connection;
+
+    getDebugLog()(
+      `DEBUG: Creating streamable HTTP transport for server "${serverName}" with URL: ${url}`
+    );
+
+    const transport = new StreamableHTTPClientTransport(
+      new URL(url)
+    );
+
+    this._transportInstances[serverName] = transport;
+
+    const client = new Client({
+      name: "langchain-mcp-adapter",
+      version: "0.1.0",
+    });
+
+    try {
+      await client.connect(transport);
+    } catch (error) {
+      throw new MCPClientError(
+        `Failed to connect to streamable HTTP server "${serverName}": ${error}`,
+        serverName
+      );
+    }
+
+    this._clients[serverName] = client;
+
+    const cleanup = async () => {
+      getDebugLog()(
+        `DEBUG: Closing streamable HTTP transport for server "${serverName}"`
+      );
+      await transport.close();
+    };
+
+    this._cleanupFunctions.push(cleanup);
+
+    // Load tools for this server
+    await this._loadToolsForServer(serverName, client);
+  }
+
 
   /**
    * Initialize a stdio connection

@@ -378,13 +378,14 @@ describe("MultiServerMCPClient", () => {
       expect(closeMock).toHaveBeenCalledOnce();
     });
   });
-  
+
   // Streamable HTTP specific tests
   describe("streamable HTTP transport", () => {
     test("should throw when streamable HTTP config is missing required fields", () => {
       expect(() => {
         // eslint-disable-next-line no-new
         new MultiServerMCPClient({
+          // @ts-expect-error missing url field
           "test-server": {
             transport: "streamable",
             // Missing url field
@@ -428,7 +429,7 @@ describe("MultiServerMCPClient", () => {
       expect(StreamableHTTPClientTransport).toHaveBeenCalled();
       expect(SSEClientTransport).toHaveBeenCalled();
       expect(StdioClientTransport).toHaveBeenCalled();
-      
+
       // Get tools from all servers
       const tools = await client.getTools();
       expect(tools.length).toBeGreaterThan(0);
@@ -458,7 +459,7 @@ describe("MultiServerMCPClient", () => {
       const closeMock = vi
         .fn()
         .mockReturnValue(Promise.reject(new Error("Close failed")));
-      
+
       // Mock close to throw an error
       (StreamableHTTPClientTransport as Mock).mockImplementationOnce(() => ({
         close: closeMock,

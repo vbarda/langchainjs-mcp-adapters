@@ -1,7 +1,10 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import {
+  StreamableHTTPClientTransport,
+  StreamableHTTPError,
+} from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { StructuredToolInterface } from "@langchain/core/tools";
 import debug from "debug";
 import { z } from "zod";
@@ -95,9 +98,9 @@ export function createStdioConnectionSchema() {
 }
 
 /**
- * Create schema for SSE transport reconnection configuration
+ * Create schema for streamable HTTP transport reconnection configuration
  */
-export function createSseReconnectSchema() {
+export function createStreamableReconnectSchema() {
   return z
     .object({
       /**
@@ -124,42 +127,28 @@ export function createSseReconnectSchema() {
         .describe("The delay in milliseconds between reconnection attempts")
         .optional(),
     })
-    .describe("Configuration for SSE transport reconnection");
+    .describe("Configuration for streamable HTTP transport reconnection");
 }
 
 /**
- * Create schema for SSE transport connection
- */
-export function createSseConnectionSchema() {
-  return z.intersection(
-    z
-      .object({
-        url: z.string().url(),
-        headers: z.record(z.string()).optional(),
-        useNodeEventSource: z.boolean().optional(),
-        /**
-         * Additional reconnection settings
-         */
-        reconnect: createSseReconnectSchema().optional(),
-      })
-      .describe("Configuration for SSE transport connection"),
-    z.union([
-      z.object({ transport: z.literal("sse") }),
-      z.object({ type: z.literal("sse") }),
-    ])
-  );
-}
-
-/**
- * Create schema for Streamable HTTP connection
+ * Create schema for Streamable HTTP transport connection
  */
 export function createStreamableHTTPConnectionSchema() {
   return z
     .object({
-      transport: z.literal("streamable").optional(),
+      transport: z
+        .union([z.literal("streamable"), z.literal("sse")])
+        .optional(),
+      type: z.union([z.literal("streamable"), z.literal("sse")]).optional(),
       url: z.string().url(),
+      headers: z.record(z.string()).optional(),
+      useNodeEventSource: z.boolean().optional(),
+      /**
+       * Additional reconnection settings
+       */
+      reconnect: createStreamableReconnectSchema().optional(),
     })
-    .describe("Configuration for Streamable HTTP transport connection");
+    .describe("Configuration for streamable HTTP transport connection");
 }
 
 /**
@@ -169,7 +158,6 @@ export function createConnectionSchema() {
   return z
     .union([
       createStdioConnectionSchema(),
-      createSseConnectionSchema(),
       createStreamableHTTPConnectionSchema(),
     ])
     .describe("Configuration for a single MCP server");
@@ -211,14 +199,7 @@ export type StdioConnection = z.infer<
 >;
 
 /**
- * Configuration for SSE transport connection
- */
-export type SSEConnection = z.infer<
-  ReturnType<typeof createSseConnectionSchema>
->;
-
-/**
- * Configuration for Streamable HTTP transport connection
+ * Configuration for streamable HTTP transport connection
  */
 export type StreamableHTTPConnection = z.infer<
   ReturnType<typeof createStreamableHTTPConnectionSchema>
@@ -262,22 +243,17 @@ function isStdioConnection(
   return false;
 }
 
-function isSSEConnection(connection: Connection): connection is SSEConnection {
-  if ("transport" in connection && connection.transport === "sse") {
-    return true;
-  }
-
-  if ("type" in connection && connection.type === "sse") {
-    return true;
-  }
-
-  return false;
-}
-
 function isStreamableHTTPConnection(
   connection: Connection
 ): connection is StreamableHTTPConnection {
-  if ("transport" in connection && connection.transport === "streamable") {
+  if (
+    ("transport" in connection &&
+      connection.transport != null &&
+      ["streamable", "sse"].includes(connection.transport)) ||
+    ("type" in connection &&
+      connection.type != null &&
+      ["streamable", "sse"].includes(connection.type))
+  ) {
     return true;
   }
 
@@ -368,8 +344,6 @@ export class MultiServerMCPClient {
 
       if (isStdioConnection(connection)) {
         await this._initializeStdioConnection(serverName, connection);
-      } else if (isSSEConnection(connection)) {
-        await this._initializeSSEConnection(serverName, connection);
       } else if (isStreamableHTTPConnection(connection)) {
         await this._initializeStreamableHTTPConnection(serverName, connection);
       } else {
@@ -430,49 +404,6 @@ export class MultiServerMCPClient {
     this._transportInstances = {};
 
     getDebugLog()(`INFO: All MCP connections closed`);
-  }
-
-  private async _initializeStreamableHTTPConnection(
-    serverName: string,
-    connection: StreamableHTTPConnection
-  ): Promise<void> {
-    const { url } = connection;
-
-    getDebugLog()(
-      `DEBUG: Creating streamable HTTP transport for server "${serverName}" with URL: ${url}`
-    );
-
-    const transport = new StreamableHTTPClientTransport(new URL(url));
-
-    this._transportInstances[serverName] = transport;
-
-    const client = new Client({
-      name: "langchain-mcp-adapter",
-      version: "0.1.0",
-    });
-
-    try {
-      await client.connect(transport);
-    } catch (error) {
-      throw new MCPClientError(
-        `Failed to connect to streamable HTTP server "${serverName}": ${error}`,
-        serverName
-      );
-    }
-
-    this._clients[serverName] = client;
-
-    const cleanup = async () => {
-      getDebugLog()(
-        `DEBUG: Closing streamable HTTP transport for server "${serverName}"`
-      );
-      await transport.close();
-    };
-
-    this._cleanupFunctions.push(cleanup);
-
-    // Load tools for this server
-    await this._loadToolsForServer(serverName, client);
   }
 
   /**
@@ -566,22 +497,30 @@ export class MultiServerMCPClient {
   /**
    * Initialize an SSE connection
    */
-  private async _initializeSSEConnection(
+  private async _initializeStreamableHTTPConnection(
     serverName: string,
-    connection: SSEConnection
+    connection: StreamableHTTPConnection
   ): Promise<void> {
-    const { url, headers, useNodeEventSource, reconnect } = connection;
+    const {
+      url,
+      headers,
+      useNodeEventSource,
+      reconnect,
+      type: typeField,
+      transport: transportField,
+    } = connection;
+
+    const transportType = typeField || transportField;
 
     getDebugLog()(
       `DEBUG: Creating SSE transport for server "${serverName}" with URL: ${url}`
     );
 
-    try {
-      const transport = await this._createSSETransport(
+    if (transportType === "streamable" || transportType == null) {
+      const transport = await this._createStreamableHTTPTransport(
         serverName,
         url,
-        headers,
-        useNodeEventSource
+        headers
       );
       this._transportInstances[serverName] = transport;
 
@@ -595,33 +534,81 @@ export class MultiServerMCPClient {
 
         // Set up auto-reconnect if configured
         if (reconnect?.enabled) {
-          this._setupSSEReconnect(serverName, transport, connection, reconnect);
+          this._setupHTTPReconnect(
+            serverName,
+            transport,
+            connection,
+            reconnect
+          );
         }
       } catch (error) {
+        const streamableError = error as StreamableHTTPError;
+        if (
+          streamableError.code == null ||
+          streamableError.code < 400 ||
+          streamableError.code >= 500
+        ) {
+          throw new MCPClientError(
+            `Failed to connect to streamable HTTP server "${serverName}": ${error}`,
+            serverName
+          );
+        }
+      }
+    }
+
+    if (transportType !== "streamable") {
+      try {
+        const transport = await this._createSSETransport(
+          serverName,
+          url,
+          headers,
+          useNodeEventSource
+        );
+        this._transportInstances[serverName] = transport;
+
+        const client = new Client({
+          name: "langchain-mcp-adapter",
+          version: "0.1.0",
+        });
+
+        try {
+          await client.connect(transport);
+
+          // Set up auto-reconnect if configured
+          if (reconnect?.enabled) {
+            this._setupHTTPReconnect(
+              serverName,
+              transport,
+              connection,
+              reconnect
+            );
+          }
+        } catch (error) {
+          throw new MCPClientError(
+            `Failed to connect to SSE server "${serverName}": ${error}`,
+            serverName
+          );
+        }
+
+        this._clients[serverName] = client;
+
+        const cleanup = async () => {
+          getDebugLog()(
+            `DEBUG: Closing SSE transport for server "${serverName}"`
+          );
+          await transport.close();
+        };
+
+        this._cleanupFunctions.push(cleanup);
+
+        // Load tools for this server
+        await this._loadToolsForServer(serverName, client);
+      } catch (error) {
         throw new MCPClientError(
-          `Failed to connect to SSE server "${serverName}": ${error}`,
+          `Failed to create SSE transport for server "${serverName}": ${error}`,
           serverName
         );
       }
-
-      this._clients[serverName] = client;
-
-      const cleanup = async () => {
-        getDebugLog()(
-          `DEBUG: Closing SSE transport for server "${serverName}"`
-        );
-        await transport.close();
-      };
-
-      this._cleanupFunctions.push(cleanup);
-
-      // Load tools for this server
-      await this._loadToolsForServer(serverName, client);
-    } catch (error) {
-      throw new MCPClientError(
-        `Failed to create SSE transport for server "${serverName}": ${error}`,
-        serverName
-      );
     }
   }
 
@@ -663,6 +650,24 @@ export class MultiServerMCPClient {
     return new SSEClientTransport(new URL(url), {
       requestInit: { headers },
     });
+  }
+
+  private async _createStreamableHTTPTransport(
+    serverName: string,
+    url: string,
+    headers?: Record<string, string>
+  ): Promise<StreamableHTTPClientTransport> {
+    if (!headers) {
+      // Simple case - no headers, use default transport
+      return new StreamableHTTPClientTransport(new URL(url));
+    } else {
+      getDebugLog()(
+        `DEBUG: Using custom headers for SSE transport to server "${serverName}"`
+      );
+      return new StreamableHTTPClientTransport(new URL(url), {
+        requestInit: { headers },
+      });
+    }
   }
 
   /**
@@ -744,11 +749,11 @@ export class MultiServerMCPClient {
   /**
    * Set up SSE reconnect handling
    */
-  private _setupSSEReconnect(
+  private _setupHTTPReconnect(
     serverName: string,
-    transport: SSEClientTransport,
-    connection: SSEConnection,
-    reconnect: NonNullable<SSEConnection["reconnect"]>
+    transport: SSEClientTransport | StreamableHTTPClientTransport,
+    connection: StreamableHTTPConnection,
+    reconnect: NonNullable<StreamableHTTPConnection["reconnect"]>
   ): void {
     const originalOnClose = transport.onclose;
     // eslint-disable-next-line @typescript-eslint/no-misused-promises, no-param-reassign
@@ -760,7 +765,7 @@ export class MultiServerMCPClient {
       // Only attempt reconnect if we haven't cleaned up
       if (this._clients[serverName]) {
         getDebugLog()(
-          `INFO: SSE connection for server "${serverName}" closed, attempting to reconnect...`
+          `INFO: HTTP connection for server "${serverName}" closed, attempting to reconnect...`
         );
         await this._attemptReconnect(
           serverName,
@@ -840,8 +845,11 @@ export class MultiServerMCPClient {
         // Initialize just this connection based on its type
         if (isStdioConnection(connection)) {
           await this._initializeStdioConnection(serverName, connection);
-        } else if (isSSEConnection(connection)) {
-          await this._initializeSSEConnection(serverName, connection);
+        } else if (isStreamableHTTPConnection(connection)) {
+          await this._initializeStreamableHTTPConnection(
+            serverName,
+            connection
+          );
         }
 
         // Check if connected

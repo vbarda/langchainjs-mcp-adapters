@@ -46,7 +46,7 @@
   "author": "Ravi Kiran Vemula",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.7.0",
+    "@modelcontextprotocol/sdk": "^1.10.1",
     "debug": "^4.4.0",
     "zod": "^3.24.2"
   },

@@ -169,6 +169,12 @@ const client = new MultiServerMCPClient({
         delayMs: 2000,
       },
     },
+
+    // Streamable HTTP transport example
+    github: {
+      transport: "streamable",
+      url: "https://example.com/mcp",
+    },
   },
 });
 
